@@ -1,87 +1,124 @@
 'use strict'
+
 const WALL = '#'
 const FOOD = '.'
-const SUPER_FOOD = '🍬'
 const CHERRY = '🍒'
-const EMPTY = ''
+const SUPER_FOOD = '🍬'
+const EMPTY = ' '
 
-var gGame = {
+const gGame = {
 	score: 0,
 	isOn: false,
 }
 
 var gBoard
-var gGhostInterval
-var gCherriesInterval
+getCherries()
 
-function init() {
-	gGame.isOn = true
+function onInit() {
+	document.querySelector(
+		'.game-over-modal'
+	).innerHTML = `<span class="restart-btn" onclick="onInit()">Restart</span>`
 
-	gBoard = createBoard()
-	createGhosts()
+	elGhosts = [
+		`<img class="ghost" src="img/Ghost1.png">`,
+		`<img class="ghost" src="img/Ghost2.png">`,
+		`<img class="ghost" src="img/Ghost3.png">`,
+		`<img class="ghost" src="img/Ghost4.png">`,
+		`<img class="ghost" src="img/Ghost5.png">`,
+	]
+
+	gBoard = buildBoard()
+	createGhosts(gBoard)
 	createPacman(gBoard)
-	console.table(gBoard)
+
+	gGame.score = 0
+	updateScore(0)
+
 	renderBoard(gBoard)
 
-	gGhostInterval = setInterval(moveGhosts, 800)
-	getCherries()
-
-	document.body.addEventListener('keydown', movePacman)
-
-	const resetBtn = document.querySelector('.reset-game')
-	resetBtn.addEventListener('click', resetGame)
+	gGame.isOn = true
 }
 
-function createBoard() {
-	var size = 10
-	var board = []
+function buildBoard() {
+	const size = 10
+	const board = []
 
 	for (var i = 0; i < size; i++) {
-		board[i] = []
+		board.push([])
+
 		for (var j = 0; j < size; j++) {
+			board[i][j] = FOOD
+
 			if (
 				i === 0 ||
 				i === size - 1 ||
 				j === 0 ||
 				j === size - 1 ||
-				(i >= 5 && i < size - 2 && j === 3)
-			)
-				board[i][j] = WALL
-			else if (
-				i + j === 2 ||
-				i + j === 16 ||
-				(i + j === 9 && Math.abs(i - j) === 7)
+				(j === 3 && i > 4 && i < size - 2)
 			) {
-				board[i][j] = []
-				board[i][j].push(SUPER_FOOD)
-			} else {
-				board[i][j] = []
-				board[i][j].push(FOOD)
+				board[i][j] = WALL
+			}
+			if (
+				(i === 1 && j === 1) ||
+				(i === 1 && j === size - 2) ||
+				(i === size - 2 && j === 1) ||
+				(i === size - 2 && j === size - 2)
+			) {
+				board[i][j] = SUPER_FOOD
 			}
 		}
 	}
-
 	return board
 }
 
 function renderBoard(board) {
-	var elTable = document.querySelector('.board')
-	var strHtml = ''
-
+	var strHTML = ''
 	for (var i = 0; i < board.length; i++) {
-		strHtml += '<tr>'
-		for (var j = 0; j < board[i].length; j++) {
-			strHtml += `<td class="cell cell-${i}-${j}">${board[i][j].at(-1)}</td>`
+		strHTML += '<tr>'
+		for (var j = 0; j < board[0].length; j++) {
+			const cell = board[i][j]
+			const className = `cell cell-${i}-${j}`
+
+			strHTML += `<td class="${className}">${cell}</td>`
 		}
-		strHtml += '</tr>'
+		strHTML += '</tr>'
 	}
-	elTable.innerHTML = strHtml
+	const elBoard = document.querySelector('.board')
+	elBoard.innerHTML = strHTML
 }
 
-function renderCell(location) {
+// location is an object like this - { i: 2, j: 7 }
+function renderCell(location, value) {
 	// Select the elCell and set the value
 	const elCell = document.querySelector(`.cell-${location.i}-${location.j}`)
-	elCell.innerHTML = gBoard[location.i][location.j].at(-1)
+	elCell.innerHTML = value
+}
+
+function getCherries() {
+
+	var getCherries = setInterval(() => {
+		if(!gGame.isOn) {
+			clearInterval(getCherries)
+		}
+		getCherry()
+	}, 5000)
+}
+
+function getCherry() {
+	var emptyCells = []
+
+	for (var i = 1; i < gBoard.length - 2; i++) {
+		for (var j = 1; j < gBoard[i].length - 2; j++) {
+			var currCell = gBoard[i][j]
+			if (currCell === EMPTY) emptyCells.push({ i, j })
+		}
+	}
+
+	if(emptyCells.length === 0) return
+	shuffleArr(emptyCells)
+	
+	gBoard[emptyCells[0].i][emptyCells[0].j] = CHERRY
+	renderCell(emptyCells[0], CHERRY)
 }
 
 function updateScore(diff) {
@@ -95,84 +132,50 @@ function updateScore(diff) {
 	document.querySelector('span.score').innerText = gGame.score
 }
 
-function getCherries() {
-	gCherriesInterval = setInterval(() => {
-		if (!gGame.isOn) clearInterval(gCherriesInterval)
-		else getCherry()
-	}, 5000)
-}
+function isSuper() {
+	const edibleGhosts = []
 
-function getCherry() {
-	var emptyCells = []
+	gPacman.isSuper = true
+	console.log('gPacman is super:', gPacman.isSuper)
 
-	for (var i = 1; i < gBoard.length - 2; i++) {
-		for (var j = 1; j < gBoard[i].length - 2; j++) {
-			var currCell = gBoard[i][j].at(-1)
-			if (currCell === EMPTY) emptyCells.push({ i, j })
-		}
+	for (var i = 0; i < gGhosts.length; i++) {
+	    edibleGhosts.push(gGhosts[i].img)
+        gGhosts[i].img = '<img class="ghost blue" src="img/GhostBlue.png">'
 	}
 
-	if (emptyCells.length === 0) return
-
-	shuffleArr(emptyCells)
-	gBoard[emptyCells[0].i][emptyCells[0].j].splice(0, 1, CHERRY)
-	renderCell(emptyCells[0])
-
 	setTimeout(() => {
-		var cherryCell = gBoard[emptyCells[0].i][emptyCells[0].j]
-		if (cherryCell[0] !== gPacman.img) {
-			gBoard[emptyCells[0].i][emptyCells[0].j].splice(0, 1, EMPTY)
-			renderCell(emptyCells[0])
+		for (var i = 0; i < gGhosts.length; i++) {
+		    gGhosts[i].img = edibleGhosts[i]
+			gGhosts[i].isEaten = false
 		}
-	}, 3000)
-}
-
-function isSuper() {
-	gPacman.isSuper = true
-	turnGhostsBlue()
-
-	setTimeout(() => {
 		gPacman.isSuper = false
+		console.log('gPacman is super:', gPacman.isSuper)
 	}, 5000)
 }
 
 function checkWin() {
-	const elModal = document.querySelector('.modal')
+	const elGameOverModal = document.querySelector('.game-over-modal')
 
 	for (var i = 1; i <= 8; i++) {
 		for (var j = 1; j <= 8; j++) {
-			if (gBoard[i][j].includes(FOOD)) return
+			if (gBoard[i][j] === FOOD) return
 		}
 	}
-
-	clearInterval(gGhostInterval)
-
-	gBoard[gPacman.location.i][gPacman.location.j].push('🥳')
-	renderCell(gPacman.location)
-
-	elModal.innerHTML = `You won!!!`
+	clearInterval(gIntervalGhosts)
+	renderCell(gPacman.location, '🥳')
+	elGameOverModal.innerHTML = `<span>You won!</span><br /><span class="restart-btn" onclick="onInit()">Wanna play again?</span>`
 	gGame.isOn = false
 }
 
 function gameOver() {
-	const elModal = document.querySelector('.modal')
+	const elGameOverModal = document.querySelector('.game-over-modal')
+
+	console.log('Game Over')
+	clearInterval(gIntervalGhosts)
+	clearInterval(getCherries)
+	renderCell(gPacman.location, '🪦')
+
+	elGameOverModal.innerHTML = `<span>Game Over.</span><br /><span class="restart-btn" onclick="onInit()">Wanna play again?</span>`
 
 	gGame.isOn = false
-
-	gBoard[gPacman.location.i][gPacman.location.j].push('🪦')
-	renderCell(gPacman.location)
-
-	clearInterval(gGhostInterval)
-
-	elModal.innerHTML = 'You lost... 😞'
-}
-
-function resetGame() {
-	const elModal = document.querySelector('.modal')
-
-	gGame.score = 0
-	clearInterval(gGhostInterval)
-	gGhosts = []
-	elModal.innerHTML = ''
-	init()
 }

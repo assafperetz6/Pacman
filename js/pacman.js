@@ -1,94 +1,119 @@
 'use strict'
+// 😁
+
+const PACMAN = '<img class="pacman" src="img/PacmanPNG.png">'
 
 var gPacman
-
 function createPacman(board) {
-
-    gPacman = {
-        location: { i: 2, j: 3},
-        isSuper: false,
-        img: '<img class="pacman" src="img/PacmanPNG.png">'
-    }
-
-    board[gPacman.location.i][gPacman.location.j].splice(0, 1, gPacman.img)
+	// DONE: initialize gPacman...
+	gPacman = {
+		location: {
+			i: 2,
+			j: 2,
+		},
+		isSuper: false,
+		currCellContent: EMPTY,
+	}
+	board[gPacman.location.i][gPacman.location.j] = PACMAN
 }
 
+function onMovePacman(ev) {
+	if (!gGame.isOn) return
+	
+	// DONE: use getNextLocation(), nextCell
+	const nextLocation = getNextLocation(ev.key)
+	const nextCell = gBoard[nextLocation.i][nextLocation.j]
+	let keepSuperfoodForLater = false
+	
+	// DONE: return if cannot move
+	if (nextCell === WALL) return
 
-function movePacman(ev) {
-    if(!gGame.isOn) return
+	else if (nextCell === FOOD) updateScore(1)
+	else if (nextCell === CHERRY) {
+		updateScore(10)
+	}
 
-    var currLocation = { i: gPacman.location.i, j: gPacman.location.j }
-    var nextLocation = getNextLocation(ev)
-    var nextCell = gBoard[nextLocation.i][nextLocation.j]
-
-    if(nextCell.at(-1) === WALL) return
-    
-    if(GHOST.test(nextCell.at(-1))) {
-        if(gPacman.isSuper) {
-            updateScore(15)
-        }
-        else {
+	else if (nextCell.isGhost) {
+		if (gPacman.isSuper) {
+			updateScore(25)
+            eatGhost(nextCell)
+		} else {
             gameOver()
             return
         }
-    }
-    
-   else if(nextCell.at(-1) === FOOD) {
-        updateScore(1)
-    }
+	}
 
-    else if(nextCell.at(-1) === CHERRY) {
-        updateScore(10)
-    }
+	else if (nextCell === SUPER_FOOD) {
+		if (gPacman.isSuper)
+			keepSuperfoodForLater = true
+		else {
+			updateScore(1)
+			isSuper()
+		}
+	}
 
-    else if(nextCell.at(-1) === SUPER_FOOD) {
-        updateScore(1)
-        isSuper()
-    }
+	// DONE: moving from current location:
 
-    gBoard[currLocation.i][currLocation.j].splice(0, gBoard[currLocation.i][currLocation.j].length, EMPTY)
-    renderCell(currLocation)
-    
-    gPacman.location = nextLocation
+    // todo: CAN'T MAKE PACMAN SKIP SUPERFOOD WHEN IN SUPER MODE
+	// DONE: update the model
 
-    nextCell.splice(0, 1, gPacman.img)
+	gBoard[gPacman.location.i][gPacman.location.j] = gPacman.currCellContent
 
-    renderCell(nextLocation)
+	// DONE: update the DOM
+	renderCell(gPacman.location, gPacman.currCellContent)
 
-    flipPacman(ev)
-    checkWin()
+	// DONE: Move the pacman to new location:
+	// DONE: update the model
+	gPacman.location = nextLocation
+
+	gBoard[nextLocation.i][nextLocation.j] = PACMAN
+	// gPacman.currCellContent = EMPTY
+	// DONE: update the DOM
+	renderCell(gPacman.location, PACMAN)
+
+	gPacman.currCellContent = EMPTY
+	if (keepSuperfoodForLater) {
+		gPacman.currCellContent = SUPER_FOOD
+	}
+
+	flipPacman(ev.key)
+
+	checkWin()
 }
 
-function getNextLocation(ev) {
-    var nextLocation = { i: gPacman.location.i, j: gPacman.location.j } 
-
-    switch (ev.code) {
-        case 'ArrowUp':
-            nextLocation.i--
-            break;
-
-        case 'ArrowDown':
-            nextLocation.i++
-            break;
-            
-        case 'ArrowLeft':
-            nextLocation.j--
-            break;
-
-        case 'ArrowRight':
-            nextLocation.j++
-            break;
-    }
-    return nextLocation
+function getNextLocation(eventKeyboard) {
+	// console.log('eventKeyboard:', eventKeyboard)
+	const nextLocation = {
+		i: gPacman.location.i,
+		j: gPacman.location.j,
+	}
+	// DONE: figure out nextLocation
+	switch (eventKeyboard) {
+		case 'ArrowUp':
+			nextLocation.i--
+			break
+		case 'ArrowRight':
+			nextLocation.j++
+			break
+		case 'ArrowDown':
+			nextLocation.i++
+			break
+		case 'ArrowLeft':
+			nextLocation.j--
+			break
+	}
+	return nextLocation
 }
 
-function flipPacman(ev) {
-    const elPacman = document.querySelector('.pacman')
-    elPacman.className = 'pacman'
+function flipPacman(eventKeyboard) {
+	const elPacman = document.querySelector('.pacman')
 
-	switch (ev.code) {
+	switch (eventKeyboard) {
 		case 'ArrowUp':
 			elPacman.classList.add('pacman-up')
+			break
+		case 'ArrowRight':
+			elPacman.classList.add('pacman-right')
 			break
 		case 'ArrowDown':
 			elPacman.classList.add('pacman-down')
