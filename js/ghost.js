@@ -3,22 +3,23 @@
 var elGhosts = [`<img class="ghost" src="img/Ghost1.png">`, `<img class="ghost" src="img/Ghost2.png">`,
 `<img class="ghost" src="img/Ghost3.png">`, `<img class="ghost" src="img/Ghost4.png">`,
 `<img class="ghost" src="img/Ghost5.png">`]
+
 var gGhosts = []
+var gEatenGhosts = []
 
 var gIntervalGhosts
 var gIdx = 0
 
 function createGhosts(board) {
-    
-    // DONE: 3 ghosts and an interval
     gGhosts = []
     shuffleArr(elGhosts)
+    
     for (var i = 0; i < 3; i++) {
         createGhost(board, i)
     }
 
     if (gIntervalGhosts) clearInterval(gIntervalGhosts)
-    gIntervalGhosts = setInterval(moveGhosts, 1000)
+    gIntervalGhosts = setInterval(moveGhosts, 300)
 }
 
 function createGhost(board, ghostIdx) {
@@ -31,15 +32,17 @@ function createGhost(board, ghostIdx) {
         },
         currCellContent: FOOD,
         isGhost: true,
-        isEaten: false,
-        img
+        // isEaten: false,
+        img,
+        id: ghostIdx
     }
+
     gGhosts.push(ghost)
     board[ghost.location.i][ghost.location.j] = ghost.img
 }
 
 function moveGhosts() {
-    // DONE: loop through ghosts
+
     for (var i = 0; i < gGhosts.length; i++) {
         const ghost = gGhosts[i]
         moveGhost(ghost)
@@ -48,7 +51,6 @@ function moveGhosts() {
 
 function moveGhost(ghost) {
 
-    // DONE: figure out moveDiff, nextLocation, nextCell
     const moveDiff = getMoveDiff()
     const nextLocation = {
         i: ghost.location.i + moveDiff.i,
@@ -56,19 +58,15 @@ function moveGhost(ghost) {
     }
     const nextCell = gBoard[nextLocation.i][nextLocation.j]
 
-
-    // DONE: return if cannot move
-    if (ghost.isEaten) {
-        var spawnCell = { i: 8, j: getRandomIntInclusive(2, 7)}
-        ghost.location = spawnCell
-        ghost.currCellContent = gBoard[spawnCell.i][spawnCell.j]
-        renderCell(ghost.location, ghost.currCellContent)
+    if (nextCell === WALL) {
+        moveGhost(ghost)
         return
     }
-    if (nextCell === WALL) return
-    if (nextCell.isGhost)  return
+    if (nextCell.isGhost) {
+        moveGhost(ghost)
+        return
+    }
 
-    // DONE: hitting a pacman? call gameOver
     if (nextCell === PACMAN) {
         if(gPacman.isSuper) return
         else {
@@ -76,18 +74,15 @@ function moveGhost(ghost) {
             return
         }
     }
-    // DONE: moving from current location:
-    // DONE: update the model (restore prev cell contents)
+
     gBoard[ghost.location.i][ghost.location.j] = ghost.currCellContent
-    // DONE: update the DOM
+    
     renderCell(ghost.location, ghost.currCellContent)
 
-    // DONE: Move the ghost to new location:
-    // DONE: update the model (save cell contents)
     ghost.location = nextLocation
     ghost.currCellContent = nextCell
     gBoard[nextLocation.i][nextLocation.j] = ghost
-    // DONE: update the DOM
+    
     renderCell(ghost.location, getGhostHTML(ghost))
 }
 
@@ -106,7 +101,11 @@ function getGhostHTML(ghost) {
     return `<span>${ghost.img}</span>`
 }
 
-function eatGhost(eatenGhost) {
+function eatGhost(ghost) {
 
-    eatenGhost.isEaten = true
+    gEatenGhosts.push(ghost)
+    
+    for (var i = 0; i < gGhosts.length; i++) {
+        if(gGhosts[i] === ghost) gGhosts.splice(i, 1)
+    }
 }

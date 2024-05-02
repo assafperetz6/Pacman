@@ -119,6 +119,14 @@ function getCherry() {
 	
 	gBoard[emptyCells[0].i][emptyCells[0].j] = CHERRY
 	renderCell(emptyCells[0], CHERRY)
+	
+	setTimeout(() => {
+		var cherryCell = gBoard[emptyCells[0].i][emptyCells[0].j]
+		if(cherryCell === PACMAN) return
+		
+		cherryCell = EMPTY
+		renderCell(emptyCells[0], EMPTY)
+	}, 2500)
 }
 
 function updateScore(diff) {
@@ -133,19 +141,22 @@ function updateScore(diff) {
 }
 
 function isSuper() {
-	const edibleGhosts = []
+	const ghostImgs = []
 
 	gPacman.isSuper = true
-	console.log('gPacman is super:', gPacman.isSuper)
 
 	for (var i = 0; i < gGhosts.length; i++) {
-	    edibleGhosts.push(gGhosts[i].img)
+		ghostImgs.push(gGhosts[i].img)
         gGhosts[i].img = '<img class="ghost blue" src="img/GhostBlue.png">'
 	}
 
 	setTimeout(() => {
+
+		gGhosts.push(...gEatenGhosts)
+		gEatenGhosts = []
+
 		for (var i = 0; i < gGhosts.length; i++) {
-		    gGhosts[i].img = edibleGhosts[i]
+		    gGhosts[i].img = ghostImgs[i]
 			gGhosts[i].isEaten = false
 		}
 		gPacman.isSuper = false
@@ -159,6 +170,7 @@ function checkWin() {
 	for (var i = 1; i <= 8; i++) {
 		for (var j = 1; j <= 8; j++) {
 			if (gBoard[i][j] === FOOD) return
+			if (gGhosts.find((ghost) => ghost.currCellContent === FOOD)) return
 		}
 	}
 	clearInterval(gIntervalGhosts)
